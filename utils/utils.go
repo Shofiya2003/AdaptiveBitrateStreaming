@@ -1,15 +1,18 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	// "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 )
 
 // channel to extract files from the folder
@@ -50,19 +53,18 @@ type AwsUploader struct {
 
 func (a AwsUploader) Upload(walker fileWalk) {
 
-	region := "ap-south-1"
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
 	if err != nil {
-		fmt.Println("Error creating session:", err)
+		fmt.Println("Error loading the config:", err)
 		return
 	}
 
-	bucket := "abr-raw"
+	s3Client := s3.NewFromConfig(cfg)
 
-	uploader := s3manager.NewUploader(sess)
+	uploader := manager.NewUploader(s3Client)
+
+	bucket := "abr-raw"
 
 	for pathName := range walker {
 		fmt.Printf("Uploading %s", pathName)
@@ -74,9 +76,9 @@ func (a AwsUploader) Upload(walker fileWalk) {
 			continue
 		}
 
-		result, err := uploader.Upload(&s3manager.UploadInput{
-			Bucket: &bucket,
-			Key:    aws.String(path.Join(filename)),
+		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(filename),
 			Body:   file,
 		})
 
@@ -84,6 +86,7 @@ func (a AwsUploader) Upload(walker fileWalk) {
 			file.Close()
 			log.Println("Failed to upload", pathName, err)
 		}
+
 		log.Println("Uploaded", pathName, result.Location)
 
 		if err := file.Close(); err != nil {
