@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"abr-backend/config"
+	"abr_backend/config"
 	"context"
 	"fmt"
 	"log"
@@ -51,6 +53,10 @@ func (f fileWalk) WalkFunc(path string, info os.FileInfo, err error) error {
 type AwsUploader struct {
 }
 
+// Create CloudSession interface
+// Upload API -> pushes the task to upload into rabbitmq
+// rabbitmq task -> creates Uploader object, calls for upload
+
 func (a AwsUploader) Upload(walker fileWalk) {
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -64,7 +70,7 @@ func (a AwsUploader) Upload(walker fileWalk) {
 
 	uploader := manager.NewUploader(s3Client)
 
-	bucket := "abr-raw"
+	bucket := config.ConfigValues[config.AWS_S3_RAW_BUCKET_NAME]
 
 	for pathName := range walker {
 		fmt.Printf("Uploading %s", pathName)
