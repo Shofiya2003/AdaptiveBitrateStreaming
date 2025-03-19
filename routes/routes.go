@@ -13,7 +13,9 @@ func InitGin() *gin.Engine {
 
 	r.GET("/ping", controllers.Ping)
 
-	apiV1.POST("/initialize_upload")
+	apiV1.POST("/initialize_upload", controllers.InitializeUploadHandler)
+	apiV1.POST("/generate_presign_url", controllers.GetPresignUrlHandler)
+	apiV1.POST("/complete_upload", controllers.CompleteUploadHandler)
 
 	return r
 }

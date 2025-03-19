@@ -25,9 +25,13 @@ func InitCloudSession() {
 	cloudSession.AWS = awsClient
 }
 
-func GetSession() *CloudSession {
+func GetSession() (*CloudSession, error) {
 
-	return cloudSession
+	if cloudSession == nil {
+		return nil, fmt.Errorf("Cloud Session not initialized")
+	}
+
+	return cloudSession, nil
 
 }
 
