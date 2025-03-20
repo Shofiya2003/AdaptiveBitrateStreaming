@@ -1,5 +1,12 @@
 package upload
 
+// multi part upload strategy
+// 1. Initialize upload
+// 2. Get presigned URL
+// 3. Upload part
+// 4. Complete upload
+// For each part, the file size must be greater than 5MB
+
 import (
 	"abr_backend/config"
 	"abr_backend/utils"
@@ -14,12 +21,12 @@ import (
 
 type multiPartUploadStrategy struct{}
 
-func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string) (string, error) {
+func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string) (string, string, error) {
 
 	cloudSession, err := config.GetSession()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create presigned URL: %v", err)
+		return "", "", fmt.Errorf("failed to create presigned URL: %v", err)
 	}
 
 	S3Client := cloudSession.AWS
@@ -31,13 +38,18 @@ func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("failed to get upload ID %v", err)
+		return "", "", fmt.Errorf("failed to get upload ID %v", err)
 	}
 
 	uploadId := *multiPartUploadOutput.UploadId
 
-	return GetPresignedUrl(bucket, name, uploadId, 1)
+	uploadUrl, err := GetPresignedUrl(bucket, name, uploadId, 1)
 
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get presigned URL: %v", err)
+	}
+
+	return uploadUrl, uploadId, nil
 }
 
 func GetPresignedUrl(bucket, name, uploadId string, partNumber int32) (string, error) {

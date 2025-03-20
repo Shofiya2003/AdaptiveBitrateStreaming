@@ -3,7 +3,7 @@ package upload
 import "errors"
 
 type UploadInitializer interface {
-	InitializeUpload(bucket, name, fileType string) (string, error)
+	InitializeUpload(bucket, name, fileType string) (string, string, error)
 }
 
 // Specific to Multipart Upload

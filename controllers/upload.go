@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"abr_backend/service/upload"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -37,7 +38,7 @@ func InitializeUploadHandler(c *gin.Context) {
 		})
 	}
 
-	uploadUrl, err := uploadStrategy.InitializeUpload(req.Bucket, req.Name, req.FileType)
+	uploadUrl, uploadId, err := uploadStrategy.InitializeUpload(req.Bucket, req.Name, req.FileType)
 
 	if err != nil {
 		log.Fatal("could not initialize upload: ", err)
@@ -57,6 +58,7 @@ func InitializeUploadHandler(c *gin.Context) {
 			"upload_url": uploadUrl,
 			"strategy":   req.Strategy,
 			"partNumber": 1,
+			"uploadId":   uploadId,
 		})
 	}
 
@@ -103,11 +105,20 @@ func CompleteUploadHandler(c *gin.Context) {
 		Bucket   string `json:"bucket"`
 		UploadId string `json:"upload_id"`
 	}
-	err := upload.CompleteUpload(req.Bucket, req.Name, req.UploadId)
 
+	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
+		log.Fatal("incomplete or wrong information", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "incomplete or wrong information",
+		})
+		return
+	}
+
+	err := upload.CompleteUpload(req.Bucket, req.Name, req.UploadId)
 	if err != nil {
+		fmt.Printf("could not complete upload: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "could not complete upload",
+			"message": "could not complete upload: " + err.Error(),
 		})
 		return
 	}

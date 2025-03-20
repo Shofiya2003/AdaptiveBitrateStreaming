@@ -12,12 +12,12 @@ import (
 
 type SinglePartUploadStrategy struct{}
 
-func (s *SinglePartUploadStrategy) InitializeUpload(bucket, name, fileType string) (string, error) {
+func (s *SinglePartUploadStrategy) InitializeUpload(bucket, name, fileType string) (string, string, error) {
 
 	cloudSession, err := config.GetSession()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create presigned URL: %v", err)
+		return "", "", fmt.Errorf("failed to create presigned URL: %v", err)
 	}
 
 	S3Client := cloudSession.AWS
@@ -29,9 +29,9 @@ func (s *SinglePartUploadStrategy) InitializeUpload(bucket, name, fileType strin
 	}, s3.WithPresignExpires(15*time.Minute))
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create presigned URL: %v", err)
+		return "", "", fmt.Errorf("failed to create presigned URL: %v", err)
 	}
 
-	return presignedURL.URL, nil
+	return presignedURL.URL, "", nil
 
 }
