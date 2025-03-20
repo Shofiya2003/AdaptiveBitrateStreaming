@@ -12,16 +12,19 @@ type CONFIG_KEY int
 const (
 	PORT CONFIG_KEY = iota
 	AWS_S3_RAW_BUCKET_NAME
+	AWS_S3_TRANSCODED_BUCKET_NAME
 )
 
 var configVarNames = map[CONFIG_KEY]string{
-	PORT:                   "PORT",
-	AWS_S3_RAW_BUCKET_NAME: "AWS_S3_RAW_BUCKET_NAME",
+	PORT:                          "PORT",
+	AWS_S3_RAW_BUCKET_NAME:        "AWS_S3_RAW_BUCKET_NAME",
+	AWS_S3_TRANSCODED_BUCKET_NAME: "AWS_S3_TRANSCODED_BUCKET_NAME",
 }
 
 var ConfigValues = map[CONFIG_KEY]string{
-	PORT:                   "8000",
-	AWS_S3_RAW_BUCKET_NAME: "",
+	PORT:                          "8000",
+	AWS_S3_RAW_BUCKET_NAME:        "",
+	AWS_S3_TRANSCODED_BUCKET_NAME: "",
 }
 
 func LoadEnv() {

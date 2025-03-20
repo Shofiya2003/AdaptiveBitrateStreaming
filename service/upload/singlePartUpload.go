@@ -26,7 +26,7 @@ func (s *SinglePartUploadStrategy) InitializeUpload(bucket, name, fileType strin
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(name),
 		ContentType: aws.String(fileType),
-	}, s3.WithPresignExpires(15*time.Minute))
+	}, s3.WithPresignExpires(1000*time.Minute))
 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create presigned URL: %v", err)

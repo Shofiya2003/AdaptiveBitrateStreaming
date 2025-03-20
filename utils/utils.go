@@ -2,17 +2,15 @@ package utils
 
 import (
 	"abr_backend/config"
-	"abr_backend/data"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 )
@@ -64,7 +62,7 @@ func (a AwsUploader) Upload(walker fileWalk) {
 
 	uploader := manager.NewUploader(s3Client)
 
-	bucket := config.ConfigValues[config.AWS_S3_RAW_BUCKET_NAME]
+	bucket := config.ConfigValues[config.AWS_S3_TRANSCODED_BUCKET_NAME]
 
 	for pathName := range walker {
 		fmt.Printf("Uploading %s", pathName)
@@ -76,15 +74,18 @@ func (a AwsUploader) Upload(walker fileWalk) {
 			continue
 		}
 		log.Println(file)
+		key := fmt.Sprintf("%s/%s", "transcoded", filename)
 		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucket),
-			Key:    aws.String(filename),
+			Key:    aws.String(key),
 			Body:   file,
+			ACL:    types.ObjectCannedACL("public-read"),
 		})
 
 		if err != nil {
 			file.Close()
 			log.Println("Failed to upload", pathName, err)
+			continue
 		}
 
 		log.Println("Uploaded", pathName, result.Location)
@@ -93,28 +94,8 @@ func (a AwsUploader) Upload(walker fileWalk) {
 			log.Println("Unable to close the file")
 		}
 
-		presignClient := s3.NewPresignClient(s3Client)
-
-		presignedUrl, err := presignClient.PresignGetObject(context.Background(),
-			&s3.GetObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(filename),
-			},
-			s3.WithPresignExpires(time.Minute*15))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		process_video_event := data.VideoEvent{
-			VideoURL: presignedUrl.URL,
-		}
-
-		body, err := json.Marshal(process_video_event)
-		if err != nil {
-			log.Fatalf("Failed to marshal event: %v", err)
-		}
-
-		PublishEvent(config.Channel, config.Queue, body)
+		os.Remove(pathName)
 
 	}
+
 }
