@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"abr_backend/config"
 	"abr_backend/service/upload"
+	"abr_backend/utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,8 +28,9 @@ func InitializeUploadHandler(c *gin.Context) {
 		return
 	}
 
-	// check if bucket exists
 	// check if the file name is repeated
+
+	clientID := c.GetString("client_id")
 
 	// GetUploadstrategy
 	uploadStrategy, err := upload.GetUploadStrategy(req.Strategy)
@@ -38,7 +41,12 @@ func InitializeUploadHandler(c *gin.Context) {
 		})
 	}
 
-	uploadUrl, uploadId, err := uploadStrategy.InitializeUpload(req.Bucket, req.Name, req.FileType)
+	uploadUrl, uploadId, err := uploadStrategy.InitializeUpload(req.Bucket, req.Name, req.FileType, clientID)
+
+	videoID := utils.GenerateVideoID()
+	db := config.GetDB()
+	key := fmt.Sprintf("%s/%s", clientID, req.Name)
+	utils.AddVideo(db, videoID, clientID, "intialized", key, req.Bucket, req.Strategy)
 
 	if err != nil {
 		log.Fatal("could not initialize upload: ", err)
@@ -73,6 +81,8 @@ func GetPresignUrlHandler(c *gin.Context) {
 		UploadId   string `json:"upload_id"`
 	}
 
+	clientID := c.GetString("client_id")
+
 	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
 		log.Fatal("incomplete or wrong information", err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -81,7 +91,7 @@ func GetPresignUrlHandler(c *gin.Context) {
 		return
 	}
 
-	uploadUrl, err := upload.GetPresignedUrl(req.Bucket, req.Name, req.UploadId, req.PartNumber)
+	uploadUrl, err := upload.GetPresignedUrl(req.Bucket, req.Name, req.UploadId, req.PartNumber, clientID)
 
 	if err != nil {
 		log.Fatal("could not get pre-signed url: ", err)
@@ -114,7 +124,9 @@ func CompleteUploadHandler(c *gin.Context) {
 		return
 	}
 
-	err := upload.CompleteUpload(req.Bucket, req.Name, req.UploadId)
+	clientID := c.GetString("client_id")
+
+	err := upload.CompleteUpload(req.Bucket, req.Name, req.UploadId, clientID)
 	if err != nil {
 		fmt.Printf("could not complete upload: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

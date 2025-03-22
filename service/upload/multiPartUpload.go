@@ -21,7 +21,7 @@ import (
 
 type multiPartUploadStrategy struct{}
 
-func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string) (string, string, error) {
+func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType, clientID string) (string, string, error) {
 
 	cloudSession, err := config.GetSession()
 
@@ -30,10 +30,10 @@ func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string
 	}
 
 	S3Client := cloudSession.AWS
-
+	key := fmt.Sprintf("%s/%s", clientID, name)
 	multiPartUploadOutput, err := S3Client.CreateMultipartUpload(context.TODO(), &s3.CreateMultipartUploadInput{
 		Bucket:      aws.String(bucket),
-		Key:         aws.String(name),
+		Key:         aws.String(key),
 		ContentType: aws.String(fileType),
 	})
 
@@ -43,7 +43,7 @@ func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string
 
 	uploadId := *multiPartUploadOutput.UploadId
 
-	uploadUrl, err := GetPresignedUrl(bucket, name, uploadId, 1)
+	uploadUrl, err := GetPresignedUrl(bucket, name, uploadId, 1, clientID)
 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get presigned URL: %v", err)
@@ -52,18 +52,19 @@ func (m *multiPartUploadStrategy) InitializeUpload(bucket, name, fileType string
 	return uploadUrl, uploadId, nil
 }
 
-func GetPresignedUrl(bucket, name, uploadId string, partNumber int32) (string, error) {
+func GetPresignedUrl(bucket, name, uploadId string, partNumber int32, clientID string) (string, error) {
 	cloudSession, err := config.GetSession()
 
 	if err != nil {
 		return "", fmt.Errorf("failed to create presigned URL: %v", err)
 	}
+	key := fmt.Sprintf("%s/%s", clientID, name)
 
 	S3Client := cloudSession.AWS
 	presignClient := s3.NewPresignClient(S3Client)
 	presignedURL, err := presignClient.PresignUploadPart(context.TODO(), &s3.UploadPartInput{
 		Bucket:     aws.String(bucket),
-		Key:        aws.String(name),
+		Key:        aws.String(key),
 		UploadId:   aws.String(uploadId),
 		PartNumber: aws.Int32(partNumber),
 	}, s3.WithPresignExpires(15*time.Minute))
@@ -75,7 +76,7 @@ func GetPresignedUrl(bucket, name, uploadId string, partNumber int32) (string, e
 	return presignedURL.URL, nil
 }
 
-func CompleteUpload(bucket, key, uploadId string) error {
+func CompleteUpload(bucket, key, uploadId, clientID string) error {
 
 	cloudSession, err := config.GetSession()
 
@@ -83,6 +84,7 @@ func CompleteUpload(bucket, key, uploadId string) error {
 		return fmt.Errorf("failed to create presigned URL: %v", err)
 	}
 
+	key = fmt.Sprintf("%s/%s", clientID, key)
 	s3Client := cloudSession.AWS
 
 	parts, err := utils.ListMultipartUploadParts(bucket, key, uploadId)

@@ -19,10 +19,10 @@ import (
 type fileWalk chan string
 
 type Uploader interface {
-	Upload(walker fileWalk)
+	Upload(walker fileWalk, key_prefix string)
 }
 
-func UploadtoCloudStorage(uploader Uploader, path string) {
+func UploadtoCloudStorage(uploader Uploader, path, key_prefix string) {
 	fw := make(fileWalk)
 
 	go func() {
@@ -34,7 +34,7 @@ func UploadtoCloudStorage(uploader Uploader, path string) {
 
 	}()
 
-	uploader.Upload(fw)
+	uploader.Upload(fw, key_prefix)
 }
 
 func (f fileWalk) WalkFunc(path string, info os.FileInfo, err error) error {
@@ -56,7 +56,7 @@ type AwsUploader struct {
 // Upload API -> pushes the task to upload into rabbitmq
 // rabbitmq task -> creates Uploader object, calls for upload
 
-func (a AwsUploader) Upload(walker fileWalk) {
+func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 
 	s3Client := a.S3Client
 
@@ -74,7 +74,7 @@ func (a AwsUploader) Upload(walker fileWalk) {
 			continue
 		}
 		log.Println(file)
-		key := fmt.Sprintf("%s/%s", "transcoded", filename)
+		key := fmt.Sprintf("%s/%s", key_prefix, filename)
 		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(key),

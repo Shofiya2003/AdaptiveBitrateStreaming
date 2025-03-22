@@ -3,6 +3,7 @@ package utils
 import (
 	"abr_backend/config"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,8 +12,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,6 +39,14 @@ func Fetch(url string, fileName string) (string, error) {
 
 	// create an empty file
 	filePath := "tmp/" + fileName
+
+	dir := filepath.Dir(filePath)
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		fmt.Println("Error creating directory:", err)
+		return "", err
+	}
+
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Println(err)
@@ -108,9 +120,9 @@ func TranscodeVideo(body []byte) error {
 		S3Client: cloudSession.AWS,
 	}
 
-	UploadtoCloudStorage(uploder, "tmp/transcoded")
+	UploadtoCloudStorage(uploder, "tmp/transcoded", key)
 	bucket = config.ConfigValues[config.AWS_S3_TRANSCODED_BUCKET_NAME]
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-south-1", "transcoded/index.m3u8")
+	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-south-1", fmt.Sprintf("%s/index.m3u8", key))
 
 	fmt.Println(publicURL)
 
@@ -172,4 +184,24 @@ func GetRecords(body []byte) (string, string, error) {
 	}
 
 	return bucket, key, nil
+}
+
+func GenerateVideoID() string {
+	return uuid.New().String()
+}
+
+func AddVideo(db *sql.DB, videoID, clientID, status, fileKey, bucket, strategy string) error {
+	query := `
+	INSERT INTO videos (video_id, client_id, status, file_key, bucket, strategy)
+	VALUES (?, ?, ?, ?, ?, ?);
+	`
+
+	_, err := db.Exec(query, videoID, clientID, status, fileKey, bucket, strategy)
+	if err != nil {
+		log.Printf("Error inserting video: %v", err)
+		return err
+	}
+
+	log.Println("Video added successfully!")
+	return nil
 }
