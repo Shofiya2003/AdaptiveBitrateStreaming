@@ -91,12 +91,7 @@ func GetVideoUrl(bucket, key string) (string, error) {
 	return presignedUrl.URL, nil
 }
 
-func TranscodeVideo(body []byte) error {
-	bucket, key, err := GetRecords(body)
-	if err != nil {
-		return fmt.Errorf("error getting records: %v", err)
-	}
-
+func TranscodeVideo(bucket, key string) error {
 	url, err := GetVideoUrl(bucket, key)
 	fmt.Printf("File uploaded - Bucket: %s, Key: %s\n", bucket, key)
 	if err != nil {
@@ -108,23 +103,14 @@ func TranscodeVideo(body []byte) error {
 		return fmt.Errorf("error fetching video: %v", err)
 	}
 
-	err = Transcode(filePath, "tmp/transcoded")
-	if err != nil {
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- Transcode(filePath, "tmp/transcoded")
+	}()
+
+	if err := <-errChan; err != nil {
 		return fmt.Errorf("error transcoding video: %v", err)
 	}
-	cloudSession, err := config.GetSession()
-	if err != nil {
-		return fmt.Errorf("error getting session: %v", err)
-	}
-	uploder := AwsUploader{
-		S3Client: cloudSession.AWS,
-	}
-
-	UploadtoCloudStorage(uploder, "tmp/transcoded", key)
-	bucket = config.ConfigValues[config.AWS_S3_TRANSCODED_BUCKET_NAME]
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-south-1", fmt.Sprintf("%s/index.m3u8", key))
-
-	fmt.Println(publicURL)
 
 	return nil
 }

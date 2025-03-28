@@ -1,8 +1,9 @@
 package controllers
 
 import (
+	"abr_backend/config"
 	"abr_backend/utils"
-	"fmt"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 )
 
 func SnsHandler(c *gin.Context) {
-
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Println("Error reading body:", err)
@@ -19,23 +19,45 @@ func SnsHandler(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("body", string(body))
+	// First try to get records to validate the message
+	bucket, key, err := utils.GetRecords(body)
+	if err != nil {
+		log.Printf("Error getting records: %v", err)
+		// Return 200 to acknowledge receipt but indicate processing failed
+		// This will trigger SNS retry
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Message received but processing failed",
+			"error":   err.Error(),
+		})
+		return
+	}
 
-	go utils.TranscodeVideo(body)
+	// Create a message for the queue
+	message := struct {
+		Bucket string `json:"bucket"`
+		Key    string `json:"key"`
+	}{
+		Bucket: bucket,
+		Key:    key,
+	}
 
-	// eventBody := data.VideoEvent{
-	// 	VideoURL: url,
-	// }
+	// Convert struct to JSON bytes
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshaling message: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare message"})
+		return
+	}
 
-	// eventBodyJson, err := json.Marshal(eventBody)
-	// if err != nil {
-	// 	log.Println("Failed to marshal event:", err)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal event"})
-	// 	return
-	// }
-	// utils.PublishEvent(config.Channel, config.Queue, eventBodyJson)
+	// Publish to queue
+	err = utils.PublishEvent(config.Channel, config.Queue, messageBytes)
+	if err != nil {
+		log.Printf("Error publishing to queue: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue transcoding job"})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Transcoding in progress"})
+	c.JSON(http.StatusOK, gin.H{"message": "Transcoding job queued successfully"})
 }
 
 // type SNSMessage struct {

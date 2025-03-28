@@ -2,16 +2,14 @@ package utils
 
 import (
 	"abr_backend/config"
-	"abr_backend/data"
 	"context"
-	"encoding/json"
 	"log"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func PublishEvent(ch *amqp.Channel, q *amqp.Queue, body []byte) {
+func PublishEvent(ch *amqp.Channel, q *amqp.Queue, body []byte) error {
 	if ch == nil || q == nil {
 		log.Fatalln("Channel or Queue uninitialized")
 	}
@@ -28,12 +26,10 @@ func PublishEvent(ch *amqp.Channel, q *amqp.Queue, body []byte) {
 			Body:        body,
 		})
 
-	config.FailOnError(err, "Failed to publish a message")
-	var event data.VideoEvent
-	if err := json.Unmarshal(body, &event); err != nil {
-		log.Printf("Failed to decode message: %v", err)
-		return
+	if err != nil {
+		config.FailOnError(err, "Failed to publish a message")
+		return err
 	}
 
-	log.Printf(" [x] Sent %s\n", event.VideoURL)
+	return nil
 }
