@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -92,14 +93,18 @@ func GetVideoUrl(bucket, key string) (string, error) {
 }
 
 func TranscodeVideo(bucket, key string) error {
+	clientID := strings.Split(strings.Split(key, "/")[0], "-")[0]
+	UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "transcoding")
 	url, err := GetVideoUrl(bucket, key)
 	fmt.Printf("File uploaded - Bucket: %s, Key: %s\n", bucket, key)
 	if err != nil {
+		UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "failed")
 		return fmt.Errorf("error getting video URL: %v", err)
 	}
 
 	filePath, err := Fetch(url, key)
 	if err != nil {
+		UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "failed")
 		return fmt.Errorf("error fetching video: %v", err)
 	}
 
@@ -111,6 +116,21 @@ func TranscodeVideo(bucket, key string) error {
 	if err := <-errChan; err != nil {
 		return fmt.Errorf("error transcoding video: %v", err)
 	}
+
+	cloudSession, err := config.GetSession()
+	if err != nil {
+		UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "failed")
+		return fmt.Errorf("error getting session: %v", err)
+	}
+	uploder := AwsUploader{
+		S3Client: cloudSession.AWS,
+	}
+
+	UploadtoCloudStorage(uploder, "tmp/transcoded", key)
+	bucket = config.ConfigValues[config.AWS_S3_TRANSCODED_BUCKET_NAME]
+	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-south-1", fmt.Sprintf("%s/index.m3u8", key))
+
+	fmt.Println(publicURL)
 
 	return nil
 }
@@ -189,5 +209,32 @@ func AddVideo(db *sql.DB, videoID, clientID, status, fileKey, bucket, strategy s
 	}
 
 	log.Println("Video added successfully!")
+	return nil
+}
+
+func UpdateVideoStatus(db *sql.DB, clientID, fileKey, bucket, newStatus string) error {
+	query := `
+	UPDATE videos 
+	SET status = ?
+	WHERE client_id = ? AND file_key = ? AND bucket = ?;
+	`
+
+	result, err := db.Exec(query, newStatus, clientID, fileKey, bucket)
+	if err != nil {
+		log.Printf("Error updating video status: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no video found with client_id=%s, file_key=%s, bucket=%s", clientID, fileKey, bucket)
+	}
+
+	log.Printf("Successfully updated video status to %s for client_id=%s, file_key=%s", newStatus, clientID, fileKey)
 	return nil
 }

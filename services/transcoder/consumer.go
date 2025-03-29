@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type TranscodeJob struct {
@@ -27,13 +29,13 @@ func StartConsumer() {
 	q := config.Queue
 
 	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+		q.Name,                       // queue
+		"transcode-service-consumer", // consumer
+		false,                        // auto-ack
+		false,                        // exclusive
+		false,                        // no-local
+		false,                        // no-wait
+		nil,                          // args
 	)
 	if err != nil {
 		log.Panicln("failed to register a consumer ", err)
@@ -44,7 +46,21 @@ func StartConsumer() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			go processMessage(d.Body)
+
+			// Create a copy of the delivery for the goroutine
+			delivery := d
+
+			// Process message in a separate goroutine
+			go func(msg amqp091.Delivery) {
+				if err := processMessage(msg.Body); err != nil {
+					log.Printf("Error processing message: %v", err)
+					// Reject the message and requeue it
+					msg.Nack(false, true) // false = don't requeue all messages, true = requeue this message
+					return
+				}
+				// Acknowledge successful processing
+				msg.Ack(false) // false = don't acknowledge all messages
+			}(delivery)
 		}
 	}()
 
