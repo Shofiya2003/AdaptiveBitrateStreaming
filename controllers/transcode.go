@@ -5,6 +5,7 @@ import (
 	"abr_backend/utils"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -60,38 +61,38 @@ func SnsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Transcoding job queued successfully"})
 }
 
-// type SNSMessage struct {
-// 	Type         string `json:"Type"`
-// 	Message      string `json:"Message"`
-// 	SubscribeURL string `json:"SubscribeURL,omitempty"`
-// }
+type SNSMessage struct {
+	Type         string `json:"Type"`
+	Message      string `json:"Message"`
+	SubscribeURL string `json:"SubscribeURL,omitempty"`
+}
 
-// func SnsHandler(c *gin.Context) {
-// 	body, err := ioutil.ReadAll(c.Request.Body)
-// 	if err != nil {
-// 		log.Println("Failed to read request body:", err)
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read body"})
-// 		return
-// 	}
+func SnsSubscriber(c *gin.Context) {
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Println("Failed to read request body:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read body"})
+		return
+	}
 
-// 	var msg SNSMessage
-// 	if err := json.Unmarshal(body, &msg); err != nil {
-// 		log.Println("Failed to parse SNS message:", err)
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-// 		return
-// 	}
+	var msg SNSMessage
+	if err := json.Unmarshal(body, &msg); err != nil {
+		log.Println("Failed to parse SNS message:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
 
-// 	// Handle subscription confirmation
-// 	if msg.Type == "SubscriptionConfirmation" {
-// 		log.Println("Confirming subscription:", msg.SubscribeURL)
-// 		http.Get(msg.SubscribeURL) // Confirm the subscription
-// 	}
+	// Handle subscription confirmation
+	if msg.Type == "SubscriptionConfirmation" {
+		log.Println("Confirming subscription:", msg.SubscribeURL)
+		http.Get(msg.SubscribeURL) // Confirm the subscription
+	}
 
-// 	// Process SNS message
-// 	if msg.Type == "Notification" {
-// 		log.Println("SNS Notification received:", msg.Message)
-// 		// Extract bucket & key from SNS message if it's an S3 event
-// 	}
+	// Process SNS message
+	if msg.Type == "Notification" {
+		log.Println("SNS Notification received:", msg.Message)
+		// Extract bucket & key from SNS message if it's an S3 event
+	}
 
-// 	c.JSON(http.StatusOK, gin.H{"message": "Received"})
-// }
+	c.JSON(http.StatusOK, gin.H{"message": "Received"})
+}
