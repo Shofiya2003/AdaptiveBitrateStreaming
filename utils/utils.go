@@ -66,6 +66,7 @@ func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 
 	for pathName := range walker {
 		fmt.Printf("Uploading %s", pathName)
+
 		filename := filepath.Base(pathName)
 
 		file, err := os.Open(pathName)
@@ -73,7 +74,7 @@ func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 			log.Println("Failed opening file", pathName, err)
 			continue
 		}
-		log.Println(file)
+
 		key := fmt.Sprintf("%s/%s", key_prefix, filename)
 		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucket),
