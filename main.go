@@ -11,6 +11,7 @@ func main() {
 	r := routes.InitGin()
 	config.InitCloudSession()
 	config.InitDB()
+	config.InitRabbitMq()
 	r.Run()
 
 }

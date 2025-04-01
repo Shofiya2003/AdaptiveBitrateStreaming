@@ -31,7 +31,7 @@ var ConfigValues = map[CONFIG_KEY]string{
 }
 
 func LoadEnv() {
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 
 	if err != nil {
 		log.Println(err)

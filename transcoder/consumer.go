@@ -16,8 +16,13 @@ type TranscodeJob struct {
 }
 
 func main() {
-	// Initialize RabbitMQ connection
+	// Load environment variables from .env.transcoder
+	config.LoadEnv()
+
+	// Initialize services
 	config.InitRabbitMq()
+	config.InitCloudSession()
+	config.InitDB()
 
 	// Start consuming messages
 	StartConsumer()
