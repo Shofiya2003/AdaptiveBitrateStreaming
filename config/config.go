@@ -14,6 +14,7 @@ const (
 	AWS_S3_RAW_BUCKET_NAME
 	AWS_S3_TRANSCODED_BUCKET_NAME
 	JWT_SECRET
+	DB_PATH
 )
 
 var configVarNames = map[CONFIG_KEY]string{
@@ -21,6 +22,7 @@ var configVarNames = map[CONFIG_KEY]string{
 	AWS_S3_RAW_BUCKET_NAME:        "AWS_S3_RAW_BUCKET_NAME",
 	AWS_S3_TRANSCODED_BUCKET_NAME: "AWS_S3_TRANSCODED_BUCKET_NAME",
 	JWT_SECRET:                    "JWT_SECRET",
+	DB_PATH:                       "DB_PATH",
 }
 
 var ConfigValues = map[CONFIG_KEY]string{
@@ -28,10 +30,11 @@ var ConfigValues = map[CONFIG_KEY]string{
 	AWS_S3_RAW_BUCKET_NAME:        "",
 	AWS_S3_TRANSCODED_BUCKET_NAME: "",
 	JWT_SECRET:                    "",
+	DB_PATH:                       "",
 }
 
 func LoadEnv() {
-	err := godotenv.Load(".env")
+	err := godotenv.Load("/home/shofiya/abr/.env")
 
 	if err != nil {
 		log.Println(err)

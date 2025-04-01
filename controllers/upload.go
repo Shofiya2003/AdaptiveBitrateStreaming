@@ -46,7 +46,6 @@ func InitializeUploadHandler(c *gin.Context) {
 	videoID := utils.GenerateVideoID()
 	db := config.GetDB()
 	key := fmt.Sprintf("%s/%s", clientID, req.Name)
-	utils.AddVideo(db, videoID, clientID, "intialized", key, req.Bucket, req.Strategy)
 
 	if err != nil {
 		log.Fatal("could not initialize upload: ", err)
@@ -54,6 +53,12 @@ func InitializeUploadHandler(c *gin.Context) {
 			"message": "could not initialize upload",
 		})
 		return
+	}
+
+	err = utils.AddVideo(db, videoID, clientID, "initialized", key, req.Bucket, req.Strategy)
+
+	if err != nil {
+		log.Println("Error creating a video record ", err)
 	}
 
 	if req.Strategy == "single" {

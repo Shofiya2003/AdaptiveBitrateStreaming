@@ -93,8 +93,11 @@ func GetVideoUrl(bucket, key string) (string, error) {
 }
 
 func TranscodeVideo(bucket, key string) error {
-	clientID := strings.Split(strings.Split(key, "/")[0], "-")[0]
-	UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "transcoding")
+	clientID := strings.Split(key, "/")[0]
+	err := UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "transcoding")
+	if err != nil {
+		log.Println("Error updating video record status", err)
+	}
 	url, err := GetVideoUrl(bucket, key)
 	fmt.Printf("File uploaded - Bucket: %s, Key: %s\n", bucket, key)
 	if err != nil {
@@ -126,11 +129,16 @@ func TranscodeVideo(bucket, key string) error {
 		S3Client: cloudSession.AWS,
 	}
 
-	UploadtoCloudStorage(uploder, "tmp/transcoded", key)
+	err = UploadtoCloudStorage(uploder, "tmp/transcoded", key)
+	if err != nil {
+		UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "failed")
+		return fmt.Errorf("failed to upload video")
+	}
 	bucket = config.ConfigValues[config.AWS_S3_TRANSCODED_BUCKET_NAME]
 	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-south-1", fmt.Sprintf("%s/index.m3u8", key))
 
 	fmt.Println(publicURL)
+	UpdateVideoStatus(config.GetDB(), clientID, key, bucket, "completed")
 
 	return nil
 }
@@ -216,10 +224,10 @@ func UpdateVideoStatus(db *sql.DB, clientID, fileKey, bucket, newStatus string) 
 	query := `
 	UPDATE videos 
 	SET status = ?
-	WHERE client_id = ? AND file_key = ? AND bucket = ?;
+	WHERE client_id = ? AND file_key = ?;
 	`
 
-	result, err := db.Exec(query, newStatus, clientID, fileKey, bucket)
+	result, err := db.Exec(query, newStatus, clientID, fileKey)
 	if err != nil {
 		log.Printf("Error updating video status: %v", err)
 		return err

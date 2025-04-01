@@ -14,7 +14,14 @@ var db *sql.DB
 // Initialize Database Connection
 func InitDB() {
 	var err error
-	db, err = sql.Open("sqlite3", "./abr.db")
+	dbPath := ConfigValues[DB_PATH]
+	if dbPath == "" {
+		dbPath = "/home/shofiya/abr/abr.db" // Default for local development
+	}
+
+	// Open SQLite database
+	db, err = sql.Open("sqlite3", "file:"+dbPath+"?_journal_mode=WAL&_cache=shared")
+
 	if err != nil {
 		log.Fatal("Error connecting to database:", err)
 	}

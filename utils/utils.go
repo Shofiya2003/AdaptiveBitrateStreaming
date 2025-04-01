@@ -19,10 +19,10 @@ import (
 type fileWalk chan string
 
 type Uploader interface {
-	Upload(walker fileWalk, key_prefix string)
+	Upload(walker fileWalk, key_prefix string) error
 }
 
-func UploadtoCloudStorage(uploader Uploader, path, key_prefix string) {
+func UploadtoCloudStorage(uploader Uploader, path, key_prefix string) error {
 	fw := make(fileWalk)
 
 	go func() {
@@ -34,7 +34,7 @@ func UploadtoCloudStorage(uploader Uploader, path, key_prefix string) {
 
 	}()
 
-	uploader.Upload(fw, key_prefix)
+	return uploader.Upload(fw, key_prefix)
 }
 
 func (f fileWalk) WalkFunc(path string, info os.FileInfo, err error) error {
@@ -56,7 +56,7 @@ type AwsUploader struct {
 // Upload API -> pushes the task to upload into rabbitmq
 // rabbitmq task -> creates Uploader object, calls for upload
 
-func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
+func (a AwsUploader) Upload(walker fileWalk, key_prefix string) error {
 
 	s3Client := a.S3Client
 
@@ -71,8 +71,7 @@ func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 
 		file, err := os.Open(pathName)
 		if err != nil {
-			log.Println("Failed opening file", pathName, err)
-			continue
+			return fmt.Errorf("Failed opening file", pathName, err)
 		}
 
 		key := fmt.Sprintf("%s/%s", key_prefix, filename)
@@ -85,8 +84,7 @@ func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 
 		if err != nil {
 			file.Close()
-			log.Println("Failed to upload", pathName, err)
-			continue
+			return fmt.Errorf("Failed to upload", pathName, err)
 		}
 
 		log.Println("Uploaded", pathName, result.Location)
@@ -98,5 +96,7 @@ func (a AwsUploader) Upload(walker fileWalk, key_prefix string) {
 		os.Remove(pathName)
 
 	}
+
+	return nil
 
 }
