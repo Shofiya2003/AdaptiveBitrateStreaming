@@ -1,6 +1,10 @@
 package data
 
-import "github.com/dgrijalva/jwt-go"
+import (
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
+)
 
 type VideoEvent struct {
 	VideoURL string `json:"video_url"`
@@ -14,6 +18,16 @@ type User struct {
 	ClientID string `json:"client_id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type Video struct {
+	VideoID    string    `json:"video_id" db:"video_id"`
+	ClientID   string    `json:"client_id" db:"client_id"`
+	UploadTime time.Time `json:"upload_time" db:"upload_time"`
+	Status     string    `json:"status" db:"status"`
+	FileKey    string    `json:"file_key" db:"file_key"`
+	Bucket     string    `json:"bucket" db:"bucket"`
+	Strategy   string    `json:"strategy" db:"strategy"`
 }
 
 type Claims struct {
