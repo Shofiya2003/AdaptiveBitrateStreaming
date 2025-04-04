@@ -28,6 +28,7 @@ type Video struct {
 	FileKey    string    `json:"file_key" db:"file_key"`
 	Bucket     string    `json:"bucket" db:"bucket"`
 	Strategy   string    `json:"strategy" db:"strategy"`
+	Url        string    `json:"url"`
 }
 
 type Claims struct {

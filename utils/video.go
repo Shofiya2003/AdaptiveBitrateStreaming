@@ -2,6 +2,7 @@ package utils
 
 import (
 	"abr_backend/config"
+	"abr_backend/data"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -202,6 +203,43 @@ func GetRecords(body []byte) (string, string, error) {
 
 func GenerateVideoID() string {
 	return uuid.New().String()
+}
+
+func GetVideos(db *sql.DB, clientID string, page int) ([]data.Video, error) {
+	const pageSize = 10
+	offset := (page - 1) * pageSize
+
+	query := `
+	SELECT * 
+	FROM videos 
+	WHERE client_id = ? 
+	ORDER BY upload_time DESC
+	LIMIT ? OFFSET ?;
+	`
+
+	rows, err := db.Query(query, clientID, pageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching videos: %v", err)
+	}
+	defer rows.Close()
+
+	var videos []data.Video
+
+	for rows.Next() {
+		var v data.Video
+		if err := rows.Scan(&v.VideoID, &v.ClientID, &v.UploadTime, &v.Status, &v.FileKey, &v.Bucket, &v.Strategy); err != nil {
+			return nil, fmt.Errorf("error scanning video: %v", err)
+		}
+		publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", v.Bucket, "ap-south-1", fmt.Sprintf("%s/index.m3u8", v.FileKey))
+		v.Url = publicURL
+		videos = append(videos, v)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating through rows: %v", err)
+	}
+
+	return videos, nil
 }
 
 func AddVideo(db *sql.DB, videoID, clientID, status, fileKey, bucket, strategy string) error {
