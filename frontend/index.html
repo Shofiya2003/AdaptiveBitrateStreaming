@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player with Quality Selector</title>
+
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+
+    <!-- Video.js & Plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.3.0/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-hls-quality-selector"></script>
+</head>
+<body>
+
+    <!-- Video Player -->
+     <!-- cat high quality= https://abr-output.s3.ap-south-1.amazonaws.com/shofiya-1742596958341515672/cat_high_quality.mp4/index.m3u8 -->
+    <!-- cat low quality = "https://abr-output.s3.ap-south-1.amazonaws.com/shofiya-1742596958341515672/cat.mp4/index.m3u8 -->
+     <video id="example-video" class="video-js vjs-default-skin" controls width="960" height="540">
+        <source src="https://.s3.ap-south-1.amazonaws.com/test-1743500842391140771/testing.mp4/index.m3u8" type="application/x-mpegURL">
+    </video>
+<!-- 
+    <video id="example-video" class="video-js vjs-default-skin" controls width="960" height="540">
+        <source src="https://abr-output.s3.ap-south-1.amazonaws.com/output_four_md/index.m3u8" type="application/x-mpegURL">
+    </video> -->
+
+    <script>
+        var player = videojs('example-video', {
+            controls: true,
+            autoplay: false,
+            fluid: true,
+            plugins: {
+                hlsQualitySelector: {} // Enables quality selector
+            }
+        });
+
+        player.hlsQualitySelector(); // Activate quality selector
+    </script>
+
+</body>
+</html>
