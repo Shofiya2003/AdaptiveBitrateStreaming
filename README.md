@@ -3,7 +3,8 @@ This service allows users to **upload videos** and stream them using **Adaptive 
 
 ## Architecture
 
-![image](https://github.com/user-attachments/assets/80e0408e-3e5b-40ea-9969-5edbfc6892d7)
+![image](https://github.com/user-attachments/assets/27d36942-06c0-4363-be37-49491ebed150)
+
 
 
 ## 📌 Features  
