@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// upload → transcode → vmaf_check → thumbnail_gen → watermark → notify → analytics
+
 func SnsHandler(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
