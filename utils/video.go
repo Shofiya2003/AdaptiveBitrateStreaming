@@ -114,7 +114,7 @@ func TranscodeVideo(bucket, key string) error {
 
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- Transcode(filePath, "tmp/transcoded")
+		errChan <- Transcode(filePath, "tmp/vmaf", "tmp/transcoded")
 	}()
 
 	if err := <-errChan; err != nil {
@@ -144,9 +144,9 @@ func TranscodeVideo(bucket, key string) error {
 	return nil
 }
 
-func Transcode(inputFilePath, outputDir string) error {
+func Transcode(inputFilePath, workingDir, outputDir string) error {
 
-	cmd := exec.Command("/home/shofiya/abr/utils/transcode.sh", inputFilePath, outputDir)
+	cmd := exec.Command("/home/shofiya/abr/transcoder/smart_transcode.sh", inputFilePath, workingDir, outputDir)
 	cmd.Stdout = log.Writer() // Log output to console
 	cmd.Stderr = log.Writer() // Log errors to console
 
