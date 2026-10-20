@@ -1,5 +1,6 @@
 # AdaptiveBitrateStreaming
-This service allows users to **upload videos** and stream them using **Adaptive Bitrate (ABR) Streaming**.
+Developed a video processing backend in Go that handles video uploads, transcodes videos into multiple bitrate variants, and generates HLS playlists for adaptive playback. The system returns a playback URL that clients can integrate into their own video players, allowing viewers to watch videos at different quality levels based on network conditions. Implemented pre-signed URLs for efficient uploads and token-based access control.
+
 
 ## Architecture
 
